@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+    db:
+        build: ./db
+        environment:
+            MYSQL_ROOT_PASSWORD: password
+            MYSQL_DATABASE: mydb
+            MYSQL_USER: root
+        ports:
+            - 3306:3306
+    server:
+        build: ./server
+        working_dir: /usr/src/app
+        restart: on-failure
+        depends_on:
+            - db
+        volumes:
+            - ./server:/usr/src/app
+        ports:
+            - 3001:5000
+        command: ./src/node_modules/nodemon/bin/nodemon src/server.js
