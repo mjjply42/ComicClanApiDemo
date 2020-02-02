@@ -1,7 +1,7 @@
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
-const dbUtils = require('../dbFunctions.js')
+const dbUtils = require('../utils/dbFunctions.js')
 const mysql = require('mysql')
 
 const pool = mysql.createPool({
@@ -15,27 +15,34 @@ const pool = mysql.createPool({
 router.get("/", (req, res) => {
     pool.query(`select * from users`, (err, results) => {
         if (err)
-            res.send(err)
+            res.send({auth: false, err})
         else
             res.send(results)
         })
 })
 
-router.post("/posts", verifyToken, (req, res) => {
-    jwt.verify(req.token, 'extraspecialsupersecretkey', (err, authData) => {
+router.post("/posts", grabToken, (req, res) => {
+    jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
-            res.status(403).send({message: "Token Error"})
+        {
+            if (err.message === "jwt expired")
+                res.status(403).send({auth: false, message: "Token Expired"})
+            else
+                res.status(403).send({auth: false, message: "Token Error"})
+        }
         else
         {
-            const user = {
-                userName: "charles_tallerman"
-            }
-            if (!dbUtils.checkForUser(pool, user, res, req))
-            {
-                dbUtils.addNewUser(pool, user, res, req)
-            }
+            req.body['user_name'] = authData.user['user_name']
+            req.body['user_id'] = authData.user['user_id']
+            let user = await dbUtils.checkForUser(pool, 'auth_verify', req, res)
+            if (!user)
+                res.send({auth: false, message: "User does not exist"})
             else
-                res.send({message: "User exists!"})
+                dbUtils.postNewComment(pool, req, res).then(() => {
+                    res.send({auth: true, message: "Comment added"})
+                }).catch(() => {
+                    res.status(403).send({auth: false, message: "Error adding comment, try again"})
+                })
         }
     })
 })
@@ -46,17 +53,16 @@ router.post("/login", async (req, res) => {
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
     let user = null
-    user = await dbUtils.checkForUser(pool, req, res)
+    user = await dbUtils.checkForUser(pool, "login", req, res)
     if (user === false)
-        res.send({message: "User does not exist"})
+        res.send({auth: false, message: "Incorrect login information"})
     else
     {
-        ///if(passwordMatches(user, res.body['password']))
-        jwt.sign({user}, 'extraspecialsupersecretkey',  (err, token) => {
+        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: 3600 },  async (err, token) => {
             if (err)
-                res.status(403).send({message: "Token Error"})
+                res.status(403).send({auth: false, message: "Token creation error"})
             else
-                res.json({message: {token}})
+                res.json({auth: true, message: {token}})
         })
     }
 })
@@ -67,39 +73,32 @@ router.post("/signup", async (req, res) => {
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
     let user = null
-    user = await dbUtils.checkForUser(pool, req, res)
+    user = await dbUtils.checkForUser(pool, 'auth_verify', req, res)
     if (user === false)
     {
         user = await dbUtils.addNewUser(pool, req, res)
-        jwt.sign({user}, 'extraspecialsupersecretkey',  (err, token) => {
+        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: 3600 },  (err, token) => {
             if (err)
-                res.status(403).send({message: "Token Error"})
+                res.status(403).send({auth: false, message: "Token creation error"})
             else
-                res.json({message: {token}})
+                res.json({auth: true, message: {token}})
         })
     }
     else
-        res.send({message: "User already exists"})
+        res.send({auth: false, message: "User already exists"})
 })
 
-function verifyToken(req, res, next) {
-    //Get auth header value
+function grabToken(req, res, next) {
     const bearerHeader = req.headers['authorization']
-    //Check if bearer is undefined
     if (typeof bearerHeader !== 'undefined')
     {
         const bearer = bearerHeader.split(" ")
-        //Get token from array
         const bearerToken = bearer[1]
-        //Set the token
         req.token = bearerToken
         next()
     }
     else
-    {
-        //Forbidden
-        res.sendStatus(403)
-    }
+        res.status(403).send({auth: false, message: "No Token Provided"})
 }
 
 module.exports = router;
