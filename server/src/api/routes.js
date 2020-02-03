@@ -1,15 +1,23 @@
+require('dotenv').config()
 const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
 const dbUtils = require('../utils/dbFunctions.js')
+const testRun = require('../utils/testRun.js')
 const mysql = require('mysql')
 
-const pool = mysql.createPool({
+/*const pool = mysql.createPool({
     host: "db",
     port: "3306",
     user: 'root',
     password: "password",
     database: "mydb",
+});*/
+const pool = mysql.createPool({
+    host: "localhost",
+    port: "3306",
+    user: 'root',
+    database: 'mydb',
 });
 
 router.get("/", (req, res) => {
@@ -26,6 +34,15 @@ router.post("/comments", grabToken, async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
+    if (testRun)
+    {
+        let result = await dbUtils.postNewComment(pool, req, res)
+        if (result)
+            res.send({auth: true, message: "Comment added"})
+        else
+            res.status(403).send({auth: false, message: "Error adding comment, try again"})
+        return
+    }
     jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
         {
@@ -53,11 +70,28 @@ router.post("/comments", grabToken, async (req, res) => {
     })
 })
 
-router.get("/comments", grabToken, (req, res) => {
+router.get("/comments", grabToken, async (req, res) => {
     //res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
+    if (testRun)
+    {
+        let result = await dbUtils.retrieveCommentsByDate(pool, req, res)
+            if (result)
+            {
+                let groupedPosts = {}
+                result.forEach((item, index) => {
+                    if (!groupedPosts[item['post_id']])
+                        groupedPosts[item['post_id']] = []
+                    groupedPosts[item['post_id']].push(item)
+                })
+                res.send({auth:true, message: groupedPosts})
+            }
+            else
+                res.status(403).send({auth: false, message: "Error fetching comments"})
+        return
+    }
     jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
         {
@@ -90,6 +124,15 @@ router.post("/posts", grabToken, async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
+    if (testRun)
+    {
+        let result = await dbUtils.postNewPost(pool, req, res)
+        if (result)
+            res.send({auth: true, message: "Post added"})
+        else
+            res.status(403).send({auth: false, message: "Error adding post, try again"})
+        return
+    }
     jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
         {
@@ -122,6 +165,15 @@ router.get("/posts", grabToken, async (req, res) => {
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
+    if (testRun)
+    {
+        let result = await dbUtils.retrievePostsByDate(pool, req, res)
+            if (result)
+                res.send({auth:true, message: result})
+            else
+                res.status(403).send({auth: false, message: "Error fetching posts"})
+        return
+    }
     jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
         {
@@ -132,7 +184,7 @@ router.get("/posts", grabToken, async (req, res) => {
         }
         else
         {
-            let result = await dbUtils.retrievePostsByDate(pool, req, res1)
+            let result = await dbUtils.retrievePostsByDate(pool, req, res)
             if (result)
                 res.send({auth:true, message: result})
             else
@@ -182,7 +234,12 @@ router.post("/signup", async (req, res) => {
         res.send({auth: false, message: "User already exists"})
 })
 
-function grabToken(req, res, next) {
+async function grabToken(req, res, next) {
+    if (testRun)
+    {
+        next()
+        return
+    }
     const bearerHeader = req.headers['authorization']
     if (typeof bearerHeader !== 'undefined')
     {

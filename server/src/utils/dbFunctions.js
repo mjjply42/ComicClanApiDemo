@@ -25,7 +25,8 @@ module.exports = {
         return new Promise((resolve, reject) => {
             try
             {
-                console.log("USER ID: ", req.body['user_id'])
+                if (!req.body['content'] || !req.body['user_id'] || !req.body['image_link'])
+                    resolve(false)
                 let query = `insert into posts (user_id, content, image_link, date_posted) values 
                 ('${req.body['user_id']}', "${req.body['content']}", '${req.body['image_link']}', now())`
                 pool.query(query, (err, result) => {
@@ -45,6 +46,8 @@ module.exports = {
         return new Promise ((resolve, reject) => {
             try
             {
+                if (!req.body['comment'] || !req.body['post_id'] || !req.body['user_id'] || !req.body['image_link'])
+                    resolve(false)
                 let query = `insert into comments (post_id, user_id, comment, image_link, date_posted) 
                 values ('${req.body['post_id']}', '${req.body['user_id']}', "${req.body['comment']}", '${req.body['image_link']}', now())`
                 pool.query(query, async (err, result) => {
@@ -64,6 +67,11 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             try
             {
+                if (!req.body['user_name'] || !req.body['password'])
+                {
+                    req.sendStatus(500)
+                    resolve(false)
+                }
                 let query = `insert into users (user_name, password, date_joined) values 
                 ('${req.body['user_name']}', '${await hashUtils.hashValue(req.body['password'])}', now())`
                 pool.query(query, async (err, result) => {
@@ -84,6 +92,11 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             try
             {
+                if (!req.body['user_name'])
+                {
+                    req.sendStatus(500)
+                    resolve(false)
+                }
                 let query = `select * from users where user_name = '${req.body['user_name']}'`
                 pool.query(query, async (err, results) => {
                     if (err)
@@ -116,6 +129,11 @@ module.exports = {
         return new Promise ((resolve, reject) => {
             try
             {
+                if (!req.body['page'])
+                {
+                    req.sendStatus(500)
+                    resolve(false)
+                }
                 let query = `select * from posts order by date_posted desc limit ${req.body['page']},${itemsPerPage}`
                 pool.query(query, async (err, results) => {
                     if (err)
@@ -132,6 +150,11 @@ module.exports = {
     },
     retrieveCommentsByDate: async function(pool, req, res) {
         return new Promise((resolve, reject)=> {
+            if (!req.body['page'])
+                {
+                    req.sendStatus(500)
+                    resolve(false)
+                }
             let query = `select comments.* from posts inner join comments on comments.post_id = posts.post_id 
             order by post_id asc, date_posted desc limit ${req.body['page']},${itemsPerPage}`
                 pool.query(query, async (err, results) => {

@@ -1,20 +1,22 @@
 const express = require('express')
 const cors = require('cors')
-const whiteist = require('./utils/whitelist.js')
+const whitelist = require('./utils/whitelist.js')
 const app = express()
 const apiRoute = require('./api/routes')
 
-var options = {
+const corsOptions = {
     origin: function (origin, callback) {
+        if(!origin) 
+            return callback(null, true)
         if (whitelist.indexOf(origin) !== -1)
-            callback(null, true)
+            return callback(null, true)
         else
-            callback(new Error('Not allowed by CORS'))
-        }
+            return callback(new Error('Not allowed by CORS'))
+    }
 }  
 
 app.use(express.json())
-app.use(cors(options))
+app.use(cors(corsOptions))
 app.use('/api/', apiRoute)
 
 app.get("/", (req, res) => {
@@ -24,3 +26,5 @@ app.get("/", (req, res) => {
 const port = process.env.PORT || 5000;
 
 app.listen(port, () => console.log(`Server Started on port ${port}`))
+
+module.exports = app;
