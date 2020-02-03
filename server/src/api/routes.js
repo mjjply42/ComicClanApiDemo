@@ -3,22 +3,34 @@ const express = require('express')
 const router = express.Router()
 const jwt = require('jsonwebtoken')
 const dbUtils = require('../utils/dbFunctions.js')
-const testRun = require('../utils/testRun.js')
+const testRun = require('../tests/testRun.js')
 const mysql = require('mysql')
 
-/*const pool = mysql.createPool({
+const pool = mysql.createPool({
     host: "db",
     port: "3306",
     user: 'root',
     password: "password",
     database: "mydb",
-});*/
-const pool = mysql.createPool({
+});
+
+//Local DB pool for testing purposes
+/*const pool = mysql.createPool({
     host: "localhost",
     port: "3306",
     user: 'root',
-    database: 'mydb',
+    multipleStatements: true,
 });
+
+pool.query("create database if not exists mydb", function (err, result) {
+    if (err)
+        throw err
+    console.log("Database created")
+})
+pool.query("use mydb", function (err, result) {
+    if (err)
+        throw err
+})*/
 
 router.get("/", (req, res) => {
     pool.query(`select * from users`, (err, results) => {

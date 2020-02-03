@@ -2,7 +2,8 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET AUTOCOMMIT = 0;
 START TRANSACTION;
 SET time_zone = "+00:00";
-
+CREATE DATABASE IF NOT EXISTS mydb;
+USE mydb;
 CREATE TABLE `users` (
     `user_id` int(255) NOT NULL,
     `user_name` varchar(100) NOT NULL,
@@ -28,11 +29,17 @@ CREATE TABLE `comments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=latin1;
 
 
+-- User Password Hashes for DB
+-- m@gmail.com : cat123
+-- 233rdasd@gmail.com : dog123
+-- 43f@hotmail.com : dog
+-- ??>UDHJKwio2d@aol.com : cat
+
 INSERT INTO `users` (`user_id`, `user_name`, `password`, `date_joined`) VALUES
-(1, 'm@gmail.com', 'cat123', NOW()),
-(2, '233rdasd@gmail.com', 'dog123', NOW()),
-(3, '43f@hotmail.com', 'dog', NOW()),
-(4, '??>UDHJKwio2d@aol.com', 'cat', NOW());
+(1, 'm@gmail.com', '$2a$10$86hyCSy9Ug45QW5Zcj/e7Od8pTQGS36C1lI9x7tFKi5xz8Wnd9IcG', NOW()),
+(2, '233rdasd@gmail.com', '$2a$10$FMZPzZo82EOG0GlpP2n8su.FPmuyXQc2bf7mgRqQvUY26A2UJyQFC', NOW()),
+(3, '43f@hotmail.com', '$2a$10$TRKYnd3.aCw636QuN0W01OEbdZ8i7lSNJrKIzXDGsUdAWVNR6juy6', NOW()),
+(4, '??>UDHJKwio2d@aol.com', '$2a$10$bcMuDM2hemWL3yGLtePiMeJJHAa3HZgtliHDT/xT3Fgl0gSP8.n7a', NOW());
 
 INSERT INTO `posts` (`post_id`, `user_id`, `content`, `image_link`, `date_posted`) VALUES
 (1, 1, 'Tell me about those chickens', 'N/A', NOW()),
