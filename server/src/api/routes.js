@@ -6,6 +6,10 @@ const dbUtils = require('../utils/dbFunctions.js')
 const testRun = require('../tests/testRun.js')
 const mysql = require('mysql')
 
+//TOKEN EXPIRATION TIME (IN SECONDS)
+//ie: 3600 is 1 Hour
+const tokenExpiration = 3600
+
 const pool = mysql.createPool({
     host: "db",
     port: "3306",
@@ -19,18 +23,9 @@ const pool = mysql.createPool({
     host: "localhost",
     port: "3306",
     user: 'root',
+    database: 'mydb',
     multipleStatements: true,
-});
-
-pool.query("create database if not exists mydb", function (err, result) {
-    if (err)
-        throw err
-    console.log("Database created")
-})
-pool.query("use mydb", function (err, result) {
-    if (err)
-        throw err
-})*/
+});*/
 
 router.get("/", (req, res) => {
     pool.query(`select * from users`, (err, results) => {
@@ -216,7 +211,7 @@ router.post("/login", async (req, res) => {
         res.send({auth: false, message: "Incorrect login information"})
     else
     {
-        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: 3600 },  async (err, token) => {
+        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: tokenExpiration },  async (err, token) => {
             if (err)
                 res.status(403).send({auth: false, message: "Token creation error"})
             else
@@ -235,7 +230,7 @@ router.post("/signup", async (req, res) => {
     if (user === false)
     {
         user = await dbUtils.addNewUser(pool, req, res)
-        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: 3600 },  (err, token) => {
+        jwt.sign({user}, 'extraspecialsupersecretkey', { expiresIn: tokenExpiration },  (err, token) => {
             if (err)
                 res.status(403).send({auth: false, message: "Token creation error"})
             else

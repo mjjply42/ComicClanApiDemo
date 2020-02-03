@@ -31,13 +31,13 @@ module.exports = {
         return new Promise((resolve, reject) => {
             try
             {
-                if (!req.body['content'] || !req.body['user_id'] || !req.body['image_link'])
+                if (!req.body['content'] || !req.body['user_id'])
                 {
                     resolve(false)
                     return
                 }
-                let query = `insert into posts (user_id, content, image_link, date_posted) values 
-                ('${req.body['user_id']}', "${req.body['content']}", '${req.body['image_link']}', now())`
+                let query = `insert into posts (user_id, content, date_posted) values 
+                ('${req.body['user_id']}', "${req.body['content']}", now())`
                 pool.query(query, (err, result) => {
                     if (err)
                         throw(err)
@@ -55,13 +55,13 @@ module.exports = {
         return new Promise ((resolve, reject) => {
             try
             {
-                if (!req.body['comment'] || !req.body['post_id'] || !req.body['user_id'] || !req.body['image_link'])
+                if (!req.body['comment'] || !req.body['post_id'] || !req.body['user_id'])
                 {
                     resolve(false)
                     return
                 }
-                let query = `insert into comments (post_id, user_id, comment, image_link, date_posted) 
-                values ('${req.body['post_id']}', '${req.body['user_id']}', "${req.body['comment']}", '${req.body['image_link']}', now())`
+                let query = `insert into comments (post_id, user_id, comment, date_posted) 
+                values ('${req.body['post_id']}', '${req.body['user_id']}', "${req.body['comment']}", now())`
                 pool.query(query, async (err, result) => {
                     if (err)
                         throw(err)

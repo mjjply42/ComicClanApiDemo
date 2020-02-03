@@ -1,5 +1,13 @@
 const request = require('supertest')
 const app = require('../server.js')
+const mysql = require('mysql')
+
+const pool = mysql.createPool({
+    host: "localhost",
+    port: "3306",
+    user: 'root',
+    multipleStatements: true,
+});
 
 describe('Simple Endpoint Test', () => {
     it('BASIC MAIN ROUTE/CONNECTION TEST', async (done) => {
@@ -46,7 +54,6 @@ describe('Post Endpoints', () => {
         .set('Accept', 'application/json')
         .send({
             content: "URURURURUR",
-            image_link: "N/A",
             user_id: 2,
         })
         expect(res.statusCode).toEqual(200)
@@ -59,7 +66,6 @@ describe('Post Endpoints', () => {
         .send({
             comment: "OKURRRRR",
             post_id: 2,
-            image_link: "N/A",
             user_id: 2,
         })
         expect(res.statusCode).toEqual(200)
@@ -70,7 +76,6 @@ describe('Post Endpoints', () => {
         .post('/api/posts/')
         .set('Accept', 'application/json')
         .send({
-            image_link: "N/A",
             user_id: 2,
         })
         expect(res.statusCode).toEqual(403)
@@ -91,7 +96,6 @@ describe('Post Endpoints', () => {
         .set('Accept', 'application/json')
         .send({
             post_id: 2,
-            image_link: "N/A",
             user_id: 2,
         })
         expect(res.statusCode).toEqual(403)
@@ -146,5 +150,14 @@ describe("Get endpoints", () => {
         })
         expect(res.statusCode).toEqual(403)
         done();
+    })
+})
+
+describe("Clean and Remove Database", () => {
+    it('should clean and remove database', async (done) => {
+        pool.query('drop database mydb', (err, results) => {
+            expect(err).toEqual(null)
+            done();
+        })
     })
 })
