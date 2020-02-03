@@ -1,4 +1,5 @@
 const hashUtils = require('./hashFunctions.js')
+const itemsPerPage = 7
 
 async function getIdByName(pool, req, res)
 {
@@ -20,23 +21,42 @@ async function getIdByName(pool, req, res)
 }
 
 module.exports = {
-    postNewComment: async function(pool, req, res) {
+    postNewPost: async function(pool, req, res) {
         return new Promise((resolve, reject) => {
             try
             {
                 console.log("USER ID: ", req.body['user_id'])
                 let query = `insert into posts (user_id, content, image_link, date_posted) values 
-                ('${req.body['user_id']}', '${req.body['content']}', '${req.body['image_link']}', '${req.body['date_posted']}')`
+                ('${req.body['user_id']}', "${req.body['content']}", '${req.body['image_link']}', now())`
                 pool.query(query, (err, result) => {
                     if (err)
                         throw(err)
                     else
-                        resolve()
+                        resolve(true)
                 })
             }
             catch
             {
-                reject()
+                resolve(false)
+            }
+        })
+    },
+    postNewComment: async function(pool, req, res) {
+        return new Promise ((resolve, reject) => {
+            try
+            {
+                let query = `insert into comments (post_id, user_id, comment, image_link, date_posted) 
+                values ('${req.body['post_id']}', '${req.body['user_id']}', "${req.body['comment']}", '${req.body['image_link']}', now())`
+                pool.query(query, async (err, result) => {
+                    if (err)
+                        throw(err)
+                    else
+                        resolve(true)
+                    })
+                }
+            catch
+            {
+                resolve(false)
             }
         })
     },
@@ -44,7 +64,8 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             try
             {
-                let query = `insert into users (user_name, password) values ('${req.body['user_name']}', '${await hashUtils.hashValue(req.body['password'])}')`
+                let query = `insert into users (user_name, password, date_joined) values 
+                ('${req.body['user_name']}', '${await hashUtils.hashValue(req.body['password'])}', now())`
                 pool.query(query, async (err, result) => {
                     if (err)
                         throw(err)
@@ -63,7 +84,8 @@ module.exports = {
         return new Promise(async (resolve, reject) => {
             try
             {
-                pool.query(`select * from users where user_name = '${req.body['user_name']}'`, async (err, results) => {
+                let query = `select * from users where user_name = '${req.body['user_name']}'`
+                pool.query(query, async (err, results) => {
                     if (err)
                         throw(err)
                     else
@@ -89,5 +111,36 @@ module.exports = {
                 resolve(false)
             }
         })
-    }
+    },
+    retrievePostsByDate: async function(pool, req, res) {
+        return new Promise ((resolve, reject) => {
+            try
+            {
+                let query = `select * from posts order by date_posted desc limit ${req.body['page']},${itemsPerPage}`
+                pool.query(query, async (err, results) => {
+                    if (err)
+                        throw(err)
+                    else
+                        resolve(results)
+                });
+            }
+            catch
+            {
+                reject(false)
+            }
+        })
+    },
+    retrieveCommentsByDate: async function(pool, req, res) {
+        return new Promise((resolve, reject)=> {
+            let query = `select comments.* from posts inner join comments on comments.post_id = posts.post_id 
+            order by post_id asc, date_posted desc limit ${req.body['page']},${itemsPerPage}`
+                pool.query(query, async (err, results) => {
+                    if (err)
+                        throw(err)
+                    else
+                        resolve(results)
+                });
+        })
+    },
+
 }

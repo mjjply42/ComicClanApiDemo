@@ -21,7 +21,11 @@ router.get("/", (req, res) => {
         })
 })
 
-router.post("/posts", grabToken, (req, res) => {
+router.post("/comments", grabToken, async (req, res) => {
+    //res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+    res.setHeader('Access-Control-Allow-Credentials', true)
     jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
         if (err)
         {
@@ -38,17 +42,107 @@ router.post("/posts", grabToken, (req, res) => {
             if (!user)
                 res.send({auth: false, message: "User does not exist"})
             else
-                dbUtils.postNewComment(pool, req, res).then(() => {
+            {
+                let result = await dbUtils.postNewComment(pool, req, res)
+                if (result)
                     res.send({auth: true, message: "Comment added"})
-                }).catch(() => {
+                else
                     res.status(403).send({auth: false, message: "Error adding comment, try again"})
+            }
+        }
+    })
+})
+
+router.get("/comments", grabToken, (req, res) => {
+    //res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+    res.setHeader('Access-Control-Allow-Credentials', true)
+    jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
+        if (err)
+        {
+            if (err.message === "jwt expired")
+                res.status(403).send({auth: false, message: "Token Expired"})
+            else
+                res.status(403).send({auth: false, message: "Token Error"})
+        }
+        else
+        {
+            let result = await dbUtils.retrieveCommentsByDate(pool, req, res)
+            if (result)
+            {
+                let groupedPosts = {}
+                result.forEach((item, index) => {
+                    if (!groupedPosts[item['post_id']])
+                        groupedPosts[item['post_id']] = []
+                    groupedPosts[item['post_id']].push(item)
                 })
+                res.send({auth:true, message: groupedPosts})
+            }
+            else
+                res.status(403).send({auth: false, message: "Error fetching comments"})
+        }
+    })
+})
+
+router.post("/posts", grabToken, async (req, res) => {
+    //res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+    res.setHeader('Access-Control-Allow-Credentials', true)
+    jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
+        if (err)
+        {
+            if (err.message === "jwt expired")
+                res.status(403).send({auth: false, message: "Token Expired"})
+            else
+                res.status(403).send({auth: false, message: "Token Error"})
+        }
+        else
+        {
+            req.body['user_name'] = authData.user['user_name']
+            req.body['user_id'] = authData.user['user_id']
+            let user = await dbUtils.checkForUser(pool, 'auth_verify', req, res)
+            if (!user)
+                res.send({auth: false, message: "User does not exist"})
+            else
+            {
+                let result = await dbUtils.postNewPost(pool, req, res)
+                if (result)
+                    res.send({auth: true, message: "Post added"})
+                else
+                    res.status(403).send({auth: false, message: "Error adding post, try again"})
+            }
+        }
+    })
+})
+
+router.get("/posts", grabToken, async (req, res) => {
+    //res.setHeader('Access-Control-Allow-Origin', '*')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+    //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
+    res.setHeader('Access-Control-Allow-Credentials', true)
+    jwt.verify(req.token, 'extraspecialsupersecretkey', async (err, authData) => {
+        if (err)
+        {
+            if (err.message === "jwt expired")
+                res.status(403).send({auth: false, message: "Token Expired"})
+            else
+                res.status(403).send({auth: false, message: "Token Error"})
+        }
+        else
+        {
+            let result = await dbUtils.retrievePostsByDate(pool, req, res1)
+            if (result)
+                res.send({auth:true, message: result})
+            else
+                res.status(403).send({auth: false, message: "Error fetching posts"})
         }
     })
 })
 
 router.post("/login", async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    //res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)
@@ -68,7 +162,7 @@ router.post("/login", async (req, res) => {
 })
 
 router.post("/signup", async (req, res) => {
-    res.setHeader('Access-Control-Allow-Origin', '*')
+    //res.setHeader('Access-Control-Allow-Origin', '*')
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
     //res.setHeader('Access-Control-Allow-Headers', 'X-Requested-With,content-type')
     res.setHeader('Access-Control-Allow-Credentials', true)

@@ -1,0 +1,1 @@
+export const whiteList = ["https:www.site1.com", "https:www.site2.com"]
